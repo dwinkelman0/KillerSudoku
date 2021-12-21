@@ -2,6 +2,8 @@
 #include "Cell.h"
 #include "Util.h"
 
+#include <algorithm>
+
 template <uint32_t N>
 Cage<N>::Cage(std::set<Cell<N> *> cells, const uint32_t sum)
     : cells_(cells), sum_(sum) {}
@@ -42,15 +44,21 @@ template <uint32_t N> Cage<N> Cage<N>::operator-(const Cage<N> &other) const {
 
 template <uint32_t N>
 LogicalCage<N>::LogicalCage(std::set<Cell<N> *> cells, const uint32_t sum)
-    : Cage<N>(cells, sum), uniqueness_(true) {}
+    : Cage<N>(cells, sum), uniqueness_(true) {
+  needsEvaluation_.set();
+}
 
 template <uint32_t N>
 LogicalCage<N>::LogicalCage(std::set<Cage<N> *> cages)
-    : Cage<N>(cages), uniqueness_(false) {}
+    : Cage<N>(cages), uniqueness_(false) {
+  needsEvaluation_.set();
+}
 
 template <uint32_t N>
 LogicalCage<N>::LogicalCage(const Cage<N> &cage)
-    : Cage<N>(cage), uniqueness_(false) {}
+    : Cage<N>(cage), uniqueness_(false) {
+  needsEvaluation_.set();
+}
 
 template <uint32_t N> void LogicalCage<N>::init() {
   for (Cell<N> *cell : this->cells_) {
@@ -141,8 +149,26 @@ Cage<N> LogicalCage<N>::getMinimumSuperset(
 }
 
 template <uint32_t N>
+bool LogicalCage<N>::testCellValues(const Cell<N> *cell, const uint32_t value) {
+  if (!needsEvaluation_.test(value)) {
+    return true;
+  }
+  needsEvaluation_.reset(value);
+  if (sortedCells_.size() != this->getNumCells()) {
+    sortedCells_.clear();
+    for (const Cell<N> *cell : this->getCells()) {
+      sortedCells_.push_back(cell);
+    }
+  }
+  std::sort(sortedCells_.begin(), sortedCells_.end(),
+            Cell<N>::orderByCompleteness);
+  return testCellValues({{cell, value + 1}}, sortedCells_);
+}
+
+template <uint32_t N>
 bool LogicalCage<N>::testCellValues(
-    const std::map<const Cell<N> *, uint32_t> pairs) const {
+    const std::map<const Cell<N> *, uint32_t> &pairs,
+    std::vector<const Cell<N> *> &remaining) const {
   const uint32_t bitsetSize = N * N + 1;
   using SumBitset_t = std::bitset<bitsetSize>;
   if (this->getSum() >= bitsetSize) {
@@ -164,7 +190,7 @@ bool LogicalCage<N>::testCellValues(
       for (const auto &pair : pairs) {
         uniquenessBitsets[pair.second - 1].set(initialValue);
       }
-      for (Cell<N> *other : this->getCells()) {
+      for (const Cell<N> *other : remaining) {
         SumBitset_t stageSums(0);
         if (pairs.find(other) != pairs.end()) {
           continue;
@@ -187,7 +213,7 @@ bool LogicalCage<N>::testCellValues(
       // Recursively solve
       uint32_t minPossibilities = N + 1;
       const Cell<N> *bestCell;
-      for (const Cell<N> *other : this->getCells()) {
+      for (const Cell<N> *other : remaining) {
         uint32_t count = other->getPossibleValues().count();
         if (pairs.find(other) == pairs.end() && count < minPossibilities) {
           minPossibilities = count;
@@ -195,17 +221,21 @@ bool LogicalCage<N>::testCellValues(
         }
       }
       bool anyWorks = false;
+      const Cell<N> *first = *remaining.begin();
+      remaining.erase(remaining.begin());
       for (uint32_t i : bestCell->getPossibleValues()) {
         if (!valueBitset.test(i)) {
           std::map<const Cell<N> *, uint32_t> newPairs(pairs.begin(),
                                                        pairs.end());
           newPairs.emplace(bestCell, i + 1);
-          anyWorks = testCellValues(newPairs);
+          anyWorks = testCellValues(newPairs, remaining);
           if (anyWorks) {
             break;
           }
+          newPairs.erase(bestCell);
         }
       }
+      remaining.insert(remaining.begin(), first);
       return anyWorks;
     }
   } else {
@@ -227,6 +257,21 @@ bool LogicalCage<N>::testCellValues(
     }
   }
   return possibleSums.test(this->getSum());
+}
+
+template <uint32_t N>
+bool LogicalCage<N>::orderByComplexity(const LogicalCage<N> *left,
+                                       const LogicalCage<N> *right) {
+  if (left->getNumCells() != right->getNumCells()) {
+    return left->getNumCells() < right->getNumCells();
+  }
+  int32_t median = ((N + 1) * left->getNumCells()) / 2;
+  uint32_t leftDist = abs(static_cast<int32_t>(left->getSum()) - median);
+  uint32_t rightDist = abs(static_cast<int32_t>(right->getSum()) - median);
+  if (leftDist != rightDist) {
+    return leftDist < rightDist;
+  }
+  return left->getCells() < right->getCells();
 }
 
 template class Cage<9>;

@@ -6,6 +6,7 @@
 #include <set>
 #include <stack>
 #include <stdint.h>
+#include <vector>
 
 template <uint32_t N> class LogicalCage;
 
@@ -53,6 +54,14 @@ public:
   template <uint32_t N_>
   friend std::ostream &operator<<(std::ostream &os, const Cell<N_> &cell);
 
+  static bool orderByCompleteness(const Cell<N> *left, const Cell<N> *right);
+
+private:
+  /**
+   * Returns true if there was an update to possible values.
+   */
+  bool setPossibleValues(const PossibleValues<N> &values);
+
 private:
   static uint32_t idCounter_;
   uint32_t id_;
@@ -64,6 +73,8 @@ private:
                           to be included. */
   std::stack<PossibleValues<N>>
       cachedPossibleValues_; /*!< Store state for backtracking. */
+  std::vector<LogicalCage<N> *> sortedCages_; /*!< Cache for cages ordered by
+                                                 how hard they are to solve. */
 };
 
 template <uint32_t N>

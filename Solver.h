@@ -2,6 +2,7 @@
 
 #include "Cage.h"
 
+#include <chrono>
 #include <set>
 #include <string.h>
 #include <vector>
@@ -83,13 +84,13 @@ generateDifferentByOne(Group_t &allCages) {
   for (const Cage_t *cage1 : allCages) {
     for (const Cage_t *cage2 : allCages) {
       if (cage1->getSum() >= cage2->getSum() &&
-          cage1->getCells().size() == cage2->getCells().size() &&
+          cage1->getNumCells() == cage2->getNumCells() &&
           cage1->overlapsWith(cage2)) {
         std::set<Cell_t *> allCells(cage1->getCells());
         for (Cell_t *cell : cage2->getCells()) {
           allCells.insert(cell);
         }
-        if (allCells.size() == cage1->getCells().size() + 1) {
+        if (allCells.size() == cage1->getNumCells() + 1) {
           Cell_t *upper = nullptr, *lower = nullptr;
           for (Cell_t *cell : cage1->getCells()) {
             if (*cage2->getCells().find(cell) == *cage2->getCells().end()) {
@@ -116,19 +117,19 @@ narrow(Cell_t *cells,
   bool progress = true;
   while (progress) {
     progress = false;
-    for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; ++i) {
-      if (cells[i].narrowPossibleValues()) {
-        if (cells[i].isConflict()) {
-          return SolverStatus::CONFLICT;
-        }
-        progress = true;
-      }
-    }
     for (auto &tuple : differentByOne) {
       if (std::get<0>(tuple)->narrowPossibleValues(std::get<1>(tuple),
                                                    std::get<2>(tuple))) {
         if (std::get<0>(tuple)->isConflict() ||
             std::get<1>(tuple)->isConflict()) {
+          return SolverStatus::CONFLICT;
+        }
+        progress = true;
+      }
+    }
+    for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; ++i) {
+      if (cells[i].narrowPossibleValues()) {
+        if (cells[i].isConflict()) {
           return SolverStatus::CONFLICT;
         }
         progress = true;
@@ -207,8 +208,16 @@ bool solveRecurse(
 }
 
 bool solve(Cell_t *cells, Group_t &definedCages) {
+  auto start = std::chrono::high_resolution_clock::now();
   Group_t genericCages = generateGenericCages(cells);
   Group_t allCages = linkCages(genericCages, definedCages);
   auto differentByOne = generateDifferentByOne(allCages);
-  return solveRecurse(cells, differentByOne, 0);
+  bool result = solveRecurse(cells, differentByOne, 0);
+  auto end = std::chrono::high_resolution_clock::now();
+  std::cout << "Running time: "
+            << std::chrono::duration_cast<std::chrono::microseconds>(end -
+                                                                     start)
+                   .count()
+            << " microseconds" << std::endl;
+  return result;
 }

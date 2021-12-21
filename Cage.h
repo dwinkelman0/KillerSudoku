@@ -1,10 +1,12 @@
 #pragma once
 
+#include <bitset>
 #include <iostream>
 #include <map>
 #include <optional>
 #include <set>
 #include <stdint.h>
+#include <vector>
 
 template <uint32_t N> class Cell;
 template <uint32_t N> class Cage;
@@ -58,6 +60,7 @@ public:
     return overlappingCages_.find(const_cast<LogicalCage<N> *>(cage)) !=
            overlappingCages_.end();
   }
+  void needsEvaluation() { needsEvaluation_.set(); }
 
   /**
    * Check whether a particular cell value will satisfy the constraints of this
@@ -65,11 +68,16 @@ public:
    * has a uniqueness constraint, it is only entirely enforced if this cage has
    * 3 or fewer cells.
    */
-  bool testCellValues(const std::map<const Cell<N> *, uint32_t> pairs) const;
+  bool testCellValues(const Cell<N> *cell, const uint32_t value);
+  bool testCellValues(const std::map<const Cell<N> *, uint32_t> &pairs,
+                      std::vector<const Cell<N> *> &remaining) const;
 
   template <uint32_t N_>
   friend std::ostream &operator<<(std::ostream &os,
                                   const LogicalCage<N_> &cage);
+
+  static bool orderByComplexity(const LogicalCage<N> *left,
+                                const LogicalCage<N> *right);
 
 private:
   void updateUniqueness();
@@ -83,6 +91,12 @@ private:
       subsetCages_; /*!< Cache of cages which are a subset of this cage. */
   std::set<LogicalCage<N> *>
       supersetCages_; /*!< Cache of cages which are a superset of this cage. */
+  std::vector<const Cell<N> *>
+      sortedCells_; /*!< Cache of cells sorted by how many possible values there
+                       are. */
+
+  std::bitset<N> needsEvaluation_; /*!< Keep track of whether cells have changed
+                                      since the last cage evaluation. */
 };
 
 template <uint32_t N>

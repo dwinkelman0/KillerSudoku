@@ -1,6 +1,8 @@
 #include "Cell.h"
 #include "Cage.h"
 
+#include <algorithm>
+
 template <uint32_t N> Cell<N>::Cell() : id_(idCounter_++), cages_() {
   for (int i = 0; i < N; ++i) {
     possibleValues_.set(i);
@@ -18,24 +20,22 @@ template <uint32_t N> bool Cell<N>::narrowPossibleValues() {
     return false;
   }
   PossibleValues<N> newPossibleValues;
+  if (sortedCages_.size() != cages_.size()) {
+    sortedCages_ = std::vector<LogicalCage<N> *>(cages_.begin(), cages_.end());
+  }
+  std::sort(sortedCages_.begin(), sortedCages_.end(),
+            LogicalCage<N>::orderByComplexity);
   for (uint32_t i : possibleValues_) {
     bool allCages = true;
-    for (LogicalCage<N> *cage : cages_) {
-      if (!cage->testCellValues({{this, i + 1}})) {
+    for (LogicalCage<N> *cage : sortedCages_) {
+      if (!cage->testCellValues(this, i)) {
         allCages = false;
         break;
       }
     }
     newPossibleValues.set(i, allCages);
   }
-  if (newPossibleValues != possibleValues_) {
-    std::cout << *this << ": ";
-    printDifference<N>(std::cout, possibleValues_, newPossibleValues);
-    std::cout << std::endl;
-    possibleValues_ = newPossibleValues;
-    return true;
-  }
-  return false;
+  return setPossibleValues(newPossibleValues);
 }
 
 template <uint32_t N>
@@ -44,19 +44,29 @@ bool Cell<N>::narrowPossibleValues(Cell<N> *other, uint32_t difference) {
       possibleValues_ & (other->possibleValues_ << difference);
   PossibleValues<N> newValuesOther =
       other->possibleValues_ & (possibleValues_ >> difference);
-  if (newValuesThis != possibleValues_ ||
-      newValuesOther != other->possibleValues_) {
-    if (newValuesThis != possibleValues_) {
-      std::cout << *this << ": ";
-      printDifference<N>(std::cout, possibleValues_, newValuesThis);
-      std::cout << std::endl;
-      possibleValues_ = newValuesThis;
-    }
-    if (newValuesOther != other->possibleValues_) {
-      std::cout << *this << ": ";
-      printDifference<N>(std::cout, other->possibleValues_, newValuesOther);
-      std::cout << std::endl;
-      other->possibleValues_ = newValuesOther;
+  bool thisResult = setPossibleValues(newValuesThis);
+  bool otherResult = other->setPossibleValues(newValuesOther);
+  return thisResult || otherResult;
+}
+
+template <uint32_t N>
+bool Cell<N>::orderByCompleteness(const Cell<N> *left, const Cell<N> *right) {
+  if (left->getPossibleValues().count() != right->getPossibleValues().count()) {
+    return left->getPossibleValues().count() <
+           right->getPossibleValues().count();
+  }
+  return left->id_ < right->id_;
+}
+
+template <uint32_t N>
+bool Cell<N>::setPossibleValues(const PossibleValues<N> &values) {
+  if (values != possibleValues_) {
+    std::cout << *this << ": ";
+    printDifference<N>(std::cout, possibleValues_, values);
+    std::cout << std::endl;
+    possibleValues_ = values;
+    for (LogicalCage<N> *cage : cages_) {
+      cage->needsEvaluation();
     }
     return true;
   }
