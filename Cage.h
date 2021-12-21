@@ -16,8 +16,9 @@ public:
   Cage(std::set<Cell<N> *> cells, const uint32_t sum);
   Cage(std::set<Cage<N> *> cages);
 
-  std::set<Cell<N> *> getCells() const { return cells_; }
-  uint32_t getSum() const { return sum_; }
+  inline std::set<Cell<N> *> getCells() const { return cells_; }
+  inline uint32_t getNumCells() const { return cells_.size(); }
+  inline uint32_t getSum() const { return sum_; }
 
   /**
    * Check whether this cage is a subset of the other cage; returns true if the
@@ -49,11 +50,11 @@ public:
   void registerNewSupersetCage(LogicalCage<N> *cage);
   void unregisterCage(LogicalCage<N> *cage);
 
-  bool getUniqueness() const { return uniqueness_; }
+  inline bool getUniqueness() const { return uniqueness_; }
   Cage<N> getMaximumSubset(const std::set<LogicalCage<N> *> &group) const;
   Cage<N> getMinimumSuperset(const std::set<LogicalCage<N> *> &group) const;
-  bool isSuperset() const { return subsetCages_.size() > 0; }
-  bool overlapsWith(const LogicalCage<N> *cage) const {
+  inline bool isSuperset() const { return subsetCages_.size() > 0; }
+  inline bool overlapsWith(const LogicalCage<N> *cage) const {
     return overlappingCages_.find(const_cast<LogicalCage<N> *>(cage)) !=
            overlappingCages_.end();
   }

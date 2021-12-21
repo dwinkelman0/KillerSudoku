@@ -30,8 +30,7 @@ template <uint32_t N> bool Cage<N>::isSupersetOf(const Cage<N> *other) const {
 }
 
 template <uint32_t N> Cage<N> Cage<N>::operator-(const Cage<N> &other) const {
-  if (other.getSum() > getSum() ||
-      other.getCells().size() > getCells().size()) {
+  if (other.getSum() > getSum() || other.getNumCells() > getNumCells()) {
     return Cage<N>();
   }
   std::set<Cell<N> *> difference(getCells());
@@ -159,7 +158,7 @@ bool LogicalCage<N>::testCellValues(
   }
   possibleSums.set(initialValue, true);
   if (getUniqueness()) {
-    if (this->getCells().size() - pairs.size() <= 2) {
+    if (this->getNumCells() - pairs.size() <= 2) {
       // Can use a bit-twiddling trick to efficiently compute this
       SumBitset_t uniquenessBitsets[N];
       for (const auto &pair : pairs) {
@@ -171,15 +170,13 @@ bool LogicalCage<N>::testCellValues(
           continue;
         }
         bool progress = false;
-        for (int i = 0; i < N; ++i) {
-          if (other->getPossibleValues().test(i)) {
-            uniquenessBitsets[i] = (~uniquenessBitsets[i] & possibleSums)
-                                   << (i + 1);
-            if (uniquenessBitsets[i].any()) {
-              progress = true;
-            }
-            stageSums |= uniquenessBitsets[i];
+        for (uint32_t i : other->getPossibleValues()) {
+          uniquenessBitsets[i] = (~uniquenessBitsets[i] & possibleSums)
+                                 << (i + 1);
+          if (uniquenessBitsets[i].any()) {
+            progress = true;
           }
+          stageSums |= uniquenessBitsets[i];
         }
         if (!progress) {
           return false;
@@ -198,8 +195,8 @@ bool LogicalCage<N>::testCellValues(
         }
       }
       bool anyWorks = false;
-      for (int i = 0; i < N; ++i) {
-        if (bestCell->getPossibleValues().test(i) && !valueBitset.test(i)) {
+      for (uint32_t i : bestCell->getPossibleValues()) {
+        if (!valueBitset.test(i)) {
           std::map<const Cell<N> *, uint32_t> newPairs(pairs.begin(),
                                                        pairs.end());
           newPairs.emplace(bestCell, i + 1);

@@ -8,51 +8,29 @@ template <uint32_t N> Cell<N>::Cell() : id_(idCounter_++), cages_() {
 }
 
 template <uint32_t N>
-static void printBitset(std::ostream &os, const std::bitset<N> bits) {
-  for (int i = 0; i < N; ++i) {
-    if (bits.test(i)) {
-      os << i + 1 << ", ";
-    }
-  }
-}
-
-template <uint32_t N>
-void printDifference(const std::bitset<N> orig, const std::bitset<N> diff) {
-  std::cout << "{";
-  for (int i = 0; i < N; ++i) {
-    if (orig.test(i)) {
-      std::cout << i + 1 << ", ";
-    }
-  }
-  std::cout << "} -> {";
-  for (int i = 0; i < N; ++i) {
-    if (diff.test(i)) {
-      std::cout << i + 1 << ", ";
-    }
-  }
-  std::cout << "}";
+void printDifference(std::ostream &os, const PossibleValues<N> &orig,
+                     const PossibleValues<N> &diff) {
+  os << orig << " -> " << diff;
 }
 
 template <uint32_t N> bool Cell<N>::narrowPossibleValues() {
-  if (possibleValues_.count() == 1) {
+  if (isSolved() || isConflict()) {
     return false;
   }
-  std::bitset<N> newPossibleValues(0);
-  for (int i = 0; i < N; ++i) {
-    if (possibleValues_.test(i)) {
-      bool allCages = true;
-      for (LogicalCage<N> *cage : cages_) {
-        if (!cage->testCellValues({{this, i + 1}})) {
-          allCages = false;
-          break;
-        }
+  PossibleValues<N> newPossibleValues;
+  for (uint32_t i : possibleValues_) {
+    bool allCages = true;
+    for (LogicalCage<N> *cage : cages_) {
+      if (!cage->testCellValues({{this, i + 1}})) {
+        allCages = false;
+        break;
       }
-      newPossibleValues.set(i, allCages);
     }
+    newPossibleValues.set(i, allCages);
   }
   if (newPossibleValues != possibleValues_) {
     std::cout << *this << ": ";
-    printDifference<N>(possibleValues_, newPossibleValues);
+    printDifference<N>(std::cout, possibleValues_, newPossibleValues);
     std::cout << std::endl;
     possibleValues_ = newPossibleValues;
     return true;
@@ -62,21 +40,21 @@ template <uint32_t N> bool Cell<N>::narrowPossibleValues() {
 
 template <uint32_t N>
 bool Cell<N>::narrowPossibleValues(Cell<N> *other, uint32_t difference) {
-  std::bitset<N> newValuesThis =
+  PossibleValues<N> newValuesThis =
       possibleValues_ & (other->possibleValues_ << difference);
-  std::bitset<N> newValuesOther =
+  PossibleValues<N> newValuesOther =
       other->possibleValues_ & (possibleValues_ >> difference);
   if (newValuesThis != possibleValues_ ||
       newValuesOther != other->possibleValues_) {
     if (newValuesThis != possibleValues_) {
       std::cout << *this << ": ";
-      printDifference<N>(possibleValues_, newValuesThis);
+      printDifference<N>(std::cout, possibleValues_, newValuesThis);
       std::cout << std::endl;
       possibleValues_ = newValuesThis;
     }
     if (newValuesOther != other->possibleValues_) {
       std::cout << *this << ": ";
-      printDifference<N>(other->possibleValues_, newValuesOther);
+      printDifference<N>(std::cout, other->possibleValues_, newValuesOther);
       std::cout << std::endl;
       other->possibleValues_ = newValuesOther;
     }

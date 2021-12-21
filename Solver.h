@@ -2,8 +2,8 @@
 
 #include "Cage.h"
 
-#include <string.h>
 #include <set>
+#include <string.h>
 #include <vector>
 
 enum class SolverStatus { SOLVED, UNSOLVED, CONFLICT };
@@ -110,9 +110,9 @@ generateDifferentByOne(Group_t &allCages) {
   return differentByOne;
 }
 
-SolverStatus narrow(
-    Cell_t *cells,
-    std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>> &differentByOne) {
+SolverStatus
+narrow(Cell_t *cells,
+       std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>> &differentByOne) {
   bool progress = true;
   while (progress) {
     progress = false;
@@ -127,7 +127,8 @@ SolverStatus narrow(
     for (auto &tuple : differentByOne) {
       if (std::get<0>(tuple)->narrowPossibleValues(std::get<1>(tuple),
                                                    std::get<2>(tuple))) {
-        if (std::get<0>(tuple)->isConflict() || std::get<1>(tuple)->isConflict()) {
+        if (std::get<0>(tuple)->isConflict() ||
+            std::get<1>(tuple)->isConflict()) {
           return SolverStatus::CONFLICT;
         }
         progress = true;
@@ -148,9 +149,12 @@ Cell_t *chooseGuessCell(Cell_t *cells) {
   uint32_t numCages = 0;
   Cell_t *bestCell = nullptr;
   for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; ++i) {
-    if (cells[i].isSolved()) { continue;}
+    if (cells[i].isSolved()) {
+      continue;
+    }
     uint32_t cellNumPossible = cells[i].getPossibleValues().count();
-    if (cellNumPossible < numPossible || (cellNumPossible == numPossible && cells[i].getNumCages() > numCages)) {
+    if (cellNumPossible < numPossible ||
+        (cellNumPossible == numPossible && cells[i].getNumCages() > numCages)) {
       numPossible = cellNumPossible;
       numCages = cells[i].getNumCages();
       bestCell = &cells[i];
@@ -159,33 +163,37 @@ Cell_t *chooseGuessCell(Cell_t *cells) {
   return bestCell;
 }
 
-bool solveRecurse(Cell_t *cells, std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>> &differentByOne, uint32_t depth) {
+bool solveRecurse(
+    Cell_t *cells,
+    std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>> &differentByOne,
+    uint32_t depth) {
   SolverStatus status = narrow(cells, differentByOne);
   if (status == SolverStatus::UNSOLVED) {
     // Make a guess
     Cell_t *guessCell = chooseGuessCell(cells);
     std::cout << "UNSOLVED: about to make a guess" << std::endl;
-    for (int i = 0; i < BOARD_SIZE; ++i) {
-      if (guessCell->getPossibleValues().test(i)) {
-        std::cout << "Guessing cell " << *guessCell << " is " << i + 1 << std::endl;
-        for (int j = 0; j < BOARD_SIZE * BOARD_SIZE; ++j) {
-          cells[j].saveState();
-        }
-        guessCell->manuallySetValue(i);
-        bool result = solveRecurse(cells, differentByOne, depth + 1);
-        if (result) {
-          return true;
-        }
-        for (int j = 0; j < BOARD_SIZE * BOARD_SIZE; ++j) {
-          cells[j].restoreState();
-        }
+    for (uint32_t i : guessCell->getPossibleValues()) {
+      std::cout << "Guessing cell " << *guessCell << " is " << i + 1
+                << std::endl;
+      for (int j = 0; j < BOARD_SIZE * BOARD_SIZE; ++j) {
+        cells[j].saveState();
+      }
+      guessCell->manuallySetValue(i);
+      bool result = solveRecurse(cells, differentByOne, depth + 1);
+      if (result) {
+        return true;
+      }
+      for (int j = 0; j < BOARD_SIZE * BOARD_SIZE; ++j) {
+        cells[j].restoreState();
       }
     }
     return false;
   } else if (status == SolverStatus::CONFLICT) {
     // Rewind
     if (depth == 0) {
-      std::cout << "CONFLICT: no guesses have been made, so there is a serious problem" << std::endl;
+      std::cout << "CONFLICT: no guesses have been made, so there is a serious "
+                   "problem"
+                << std::endl;
       return false;
     }
     std::cout << "CONFLICT: about to undo a guess" << std::endl;
@@ -198,7 +206,7 @@ bool solveRecurse(Cell_t *cells, std::vector<std::tuple<Cell_t *, Cell_t *, uint
   return false;
 }
 
-bool solve(Cell_t* cells, Group_t &definedCages) {
+bool solve(Cell_t *cells, Group_t &definedCages) {
   Group_t genericCages = generateGenericCages(cells);
   Group_t allCages = linkCages(genericCages, definedCages);
   auto differentByOne = generateDifferentByOne(allCages);
