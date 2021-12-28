@@ -9,6 +9,18 @@
 
 enum class SolverStatus { SOLVED, UNSOLVED, CONFLICT };
 
+uint32_t CANONICAL_BOARD_9x9[81] = {
+  1, 2, 3, 4, 5, 6, 7, 8, 9,
+  4, 5, 6, 7, 8, 9, 1, 2, 3,
+  7, 8, 9, 1, 2, 3, 4, 5, 6,
+  2, 3, 4, 5, 6, 7, 8, 9, 1,
+  5, 6, 7, 8, 9, 1, 2, 3, 4,
+  8, 9, 1, 2, 3, 4, 5, 6, 7,
+  3, 4, 5, 6, 7, 8, 9, 1, 2,
+  6, 7, 8, 9, 1, 2, 3, 4, 5,
+  9, 1, 2, 3, 4, 5, 6, 7, 8
+};
+
 const uint32_t BOARD_SIZE = 9;
 const uint32_t BOARD_SIZE_SQRT = 3;
 const uint32_t DEFAULT_SUM = BOARD_SIZE * (BOARD_SIZE + 1) / 2;
