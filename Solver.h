@@ -22,9 +22,6 @@ using Cell_t = Cell<BOARD_SIZE>;
 using Cage_t = LogicalCage<BOARD_SIZE>;
 using Group_t = std::set<Cage_t *>;
 
-Group_t genericCages;
-std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>> differentByOne;
-
 Group_t generateGenericCages(Cell_t *cells) {
   Group_t genericCages;
   for (int row = 0; row < BOARD_SIZE; ++row) {
@@ -87,6 +84,7 @@ Group_t linkCages(Group_t &genericCages, Group_t &definedCages) {
 
 std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>>
 generateDifferentByOne(Group_t &allCages) {
+  std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>> differentByOne;
   for (const Cage_t *cage1 : allCages) {
     for (const Cage_t *cage2 : allCages) {
       if (cage1->getSum() >= cage2->getSum() &&
@@ -170,13 +168,14 @@ Cell_t *chooseGuessCell(Cell_t *cells) {
   return bestCell;
 }
 
-bool solveRecurse(
+uint32_t solveRecurse(
     Cell_t *cells,
     std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>> &differentByOne,
     uint32_t depth) {
   SolverStatus status = narrow(cells, differentByOne);
   if (status == SolverStatus::UNSOLVED) {
     // Make a guess
+    uint32_t numSolutions = 0;
     Cell_t *guessCell = chooseGuessCell(cells);
     std::cout << "UNSOLVED: about to make a guess" << std::endl;
     for (uint32_t i : guessCell->getPossibleValues()) {
@@ -186,39 +185,36 @@ bool solveRecurse(
         cells[j].saveState();
       }
       guessCell->manuallySetValue(i);
-      bool result = solveRecurse(cells, differentByOne, depth + 1);
-      if (result) {
-        return true;
-      }
+      numSolutions += solveRecurse(cells, differentByOne, depth + 1);
       for (int j = 0; j < BOARD_SIZE * BOARD_SIZE; ++j) {
         cells[j].restoreState();
       }
     }
-    return false;
+    return numSolutions;
   } else if (status == SolverStatus::CONFLICT) {
     // Rewind
     if (depth == 0) {
       std::cout << "CONFLICT: no guesses have been made, so there is a serious "
                    "problem"
                 << std::endl;
-      return false;
+      return 0;
     }
     std::cout << "CONFLICT: about to undo a guess" << std::endl;
-    return false;
+    return 0;
   } else {
     // Everything is solved
     std::cout << "SOLVED" << std::endl;
-    return true;
+    return 1;
   }
-  return false;
+  return 0;
 }
 
-bool solve(Cell_t *cells, Group_t &definedCages) {
+uint32_t solve(Cell_t *cells, Group_t &definedCages) {
   auto start = std::chrono::high_resolution_clock::now();
   Group_t genericCages = generateGenericCages(cells);
   Group_t allCages = linkCages(genericCages, definedCages);
   auto differentByOne = generateDifferentByOne(allCages);
-  bool result = solveRecurse(cells, differentByOne, 0);
+  uint32_t result = solveRecurse(cells, differentByOne, 0);
   auto end = std::chrono::high_resolution_clock::now();
   std::cout << "Running time: "
             << std::chrono::duration_cast<std::chrono::microseconds>(end -

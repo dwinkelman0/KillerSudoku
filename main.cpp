@@ -154,7 +154,8 @@ int main() {
   //   }
   // }
 
-  solve(cells, definedCages);
+  uint32_t numSolutions = solve(cells, definedCages);
+  std::cout << numSolutions << " solutions found" << std::endl;
   // Puzzle<3, 3>::Solution sol;
   // for (int i = 0; i < 9; ++i) {
   //   for (int j = 0; j < 9; ++j) {
