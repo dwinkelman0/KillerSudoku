@@ -14,8 +14,7 @@ static std::vector<uint32_t> randomRange(const uint32_t n) {
   return output;
 }
 
-template <uint32_t R, uint32_t C>
-Puzzle<R, C>::Solution::Solution() {
+template <uint32_t R, uint32_t C> Puzzle<R, C>::Solution::Solution() {
   // Generate first row
   // Generate canonical solution
   for (uint32_t row = 0; row < N; ++row) {
@@ -28,7 +27,7 @@ Puzzle<R, C>::Solution::Solution() {
   }
 
   // // Choose numbers to rotate-swap
-  // std::set<uint32_t> rowSwapSet; 
+  // std::set<uint32_t> rowSwapSet;
   // for (uint32_t i = 0; i < R; ++i) {
   //   rowSwapSet.insert(*randomRange(C).begin() + i * C);
   // }
@@ -37,10 +36,11 @@ Puzzle<R, C>::Solution::Solution() {
   //   for (uint32_t col = 0; col < C; ++col) {
   //     rowSwapSetCopy.erase(data_[row * N + col]);
   //   }
-  //   std::vector<uint32_t> swapVector(rowSwapSetCopy.begin(), rowSwapSetCopy.end());
-  //   std::map<uint32_t, uint32_t> swapMapping;
-  //   for (uint32_t i = 0; i < swapVector.size(); ++i) {
-  //     swapMapping.emplace(swapVector[i], swapVector[(i + 1) % swapVector.size()]);
+  //   std::vector<uint32_t> swapVector(rowSwapSetCopy.begin(),
+  //   rowSwapSetCopy.end()); std::map<uint32_t, uint32_t> swapMapping; for
+  //   (uint32_t i = 0; i < swapVector.size(); ++i) {
+  //     swapMapping.emplace(swapVector[i], swapVector[(i + 1) %
+  //     swapVector.size()]);
   //   }
   //   for (uint32_t col = C; col < N; ++col) {
   //     auto it = swapMapping.find(data_[row * N + col]);
@@ -58,10 +58,11 @@ Puzzle<R, C>::Solution::Solution() {
   //   for (uint32_t row = 0; row < R; ++row) {
   //     colSwapSetCopy.erase(data_[row * N + col]);
   //   }
-  //   std::vector<uint32_t> swapVector(colSwapSetCopy.begin(), colSwapSetCopy.end());
-  //   std::map<uint32_t, uint32_t> swapMapping;
-  //   for (uint32_t i = 0; i < swapVector.size(); ++i) {
-  //     swapMapping.emplace(swapVector[i], swapVector[(i + 1) % swapVector.size()]);
+  //   std::vector<uint32_t> swapVector(colSwapSetCopy.begin(),
+  //   colSwapSetCopy.end()); std::map<uint32_t, uint32_t> swapMapping; for
+  //   (uint32_t i = 0; i < swapVector.size(); ++i) {
+  //     swapMapping.emplace(swapVector[i], swapVector[(i + 1) %
+  //     swapVector.size()]);
   //   }
   //   for (uint32_t row = R; row < N; ++row) {
   //     auto it = swapMapping.find(data_[row * N + col]);
@@ -69,7 +70,7 @@ Puzzle<R, C>::Solution::Solution() {
   //       data_[row * N + col] = it->second;
   //     }
   //   }
-  // }  
+  // }
 
   // Randomly mix bands, stacks, rows, and columns
   uint32_t newData[N * N];
@@ -88,7 +89,9 @@ Puzzle<R, C>::Solution::Solution() {
     for (uint32_t col = 0; col < N; ++col) {
       uint32_t stack = col / C;
       uint32_t subcol = col % C;
-      newData[row * N + col] = get(bandOrder[band] * R + rowOrders[band][subrow], stackOrder[stack] * C + colOrders[stack][subcol]);
+      newData[row * N + col] =
+          get(bandOrder[band] * R + rowOrders[band][subrow],
+              stackOrder[stack] * C + colOrders[stack][subcol]);
     }
   }
 

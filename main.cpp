@@ -1,13 +1,13 @@
 #include "Cage.h"
 #include "Cell.h"
-#include "Solver.h"
 #include "Puzzle.h"
+#include "Solver.h"
 
 #include <algorithm>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <vector>
-#include <iomanip>
 
 int main() {
   Cell_t cells[BOARD_SIZE * BOARD_SIZE];
@@ -154,14 +154,14 @@ int main() {
   //   }
   // }
 
-  //solve(cells, definedCages);
-  Puzzle<3, 3>::Solution sol;
-  for (int i = 0; i < 9; ++i) {
-    for (int j = 0; j < 9; ++j) {
-      std::cout << std::setw(1) << sol.get(i, j) << ", ";
-    }
-    std::cout << std::endl;
-  }
+  solve(cells, definedCages);
+  // Puzzle<3, 3>::Solution sol;
+  // for (int i = 0; i < 9; ++i) {
+  //   for (int j = 0; j < 9; ++j) {
+  //     std::cout << std::setw(1) << sol.get(i, j) << ", ";
+  //   }
+  //   std::cout << std::endl;
+  // }
 
   return 0;
 }
