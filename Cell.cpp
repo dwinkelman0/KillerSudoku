@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-template <uint32_t N> Cell<N>::Cell() : id_(idCounter_++), cages_() {
+template <uint32_t N> Cell<N>::Cell(const uint32_t id) : id_(id), cages_() {
   for (int i = 0; i < N; ++i) {
     possibleValues_.set(i);
   }
@@ -39,7 +39,7 @@ template <uint32_t N> bool Cell<N>::narrowPossibleValues() {
 }
 
 template <uint32_t N>
-bool Cell<N>::narrowPossibleValues(Cell<N> *other, uint32_t difference) {
+bool Cell<N>::narrowPossibleValues(Cell<N> *other, const uint32_t difference) {
   PossibleValues<N> newValuesThis =
       possibleValues_ & (other->possibleValues_ << difference);
   PossibleValues<N> newValuesOther =
@@ -61,9 +61,9 @@ bool Cell<N>::orderByCompleteness(const Cell<N> *left, const Cell<N> *right) {
 template <uint32_t N>
 bool Cell<N>::setPossibleValues(const PossibleValues<N> &values) {
   if (values != possibleValues_) {
-    std::cout << *this << ": ";
-    printDifference<N>(std::cout, possibleValues_, values);
-    std::cout << std::endl;
+    // std::cout << *this << ": ";
+    // printDifference<N>(std::cout, possibleValues_, values);
+    // std::cout << std::endl;
     possibleValues_ = values;
     for (LogicalCage<N> *cage : cages_) {
       cage->needsEvaluation();
@@ -73,6 +73,5 @@ bool Cell<N>::setPossibleValues(const PossibleValues<N> &values) {
   return false;
 }
 
-template <uint32_t N> uint32_t Cell<N>::idCounter_ = 0;
-
 template class Cell<9>;
+template class Cell<16>;

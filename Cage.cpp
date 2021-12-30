@@ -223,10 +223,10 @@ bool LogicalCage<N>::testCellValues(
       bool anyWorks = false;
       const Cell<N> *first = *remaining.begin();
       remaining.erase(remaining.begin());
+      std::map<const Cell<N> *, uint32_t> newPairs(pairs.begin(),
+                                                    pairs.end());
       for (uint32_t i : bestCell->getPossibleValues()) {
         if (!valueBitset.test(i)) {
-          std::map<const Cell<N> *, uint32_t> newPairs(pairs.begin(),
-                                                       pairs.end());
           newPairs.emplace(bestCell, i + 1);
           anyWorks = testCellValues(newPairs, remaining);
           if (anyWorks) {
@@ -275,4 +275,6 @@ bool LogicalCage<N>::orderByComplexity(const LogicalCage<N> *left,
 }
 
 template class Cage<9>;
+template class Cage<16>;
 template class LogicalCage<9>;
+template class LogicalCage<16>;

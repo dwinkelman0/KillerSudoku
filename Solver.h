@@ -7,13 +7,8 @@
 #include <string.h>
 #include <vector>
 
+enum class SolverMode { ALL_SOLUTIONS, ANY_SOLUTIONS, DUPLICATE_SOLUTIONS };
 enum class SolverStatus { SOLVED, UNSOLVED, CONFLICT };
-
-uint32_t CANONICAL_BOARD_9x9[81] = {
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 4, 5, 6, 7, 8, 9, 1, 2, 3, 7, 8, 9,
-    1, 2, 3, 4, 5, 6, 2, 3, 4, 5, 6, 7, 8, 9, 1, 5, 6, 7, 8, 9, 1,
-    2, 3, 4, 8, 9, 1, 2, 3, 4, 5, 6, 7, 3, 4, 5, 6, 7, 8, 9, 1, 2,
-    6, 7, 8, 9, 1, 2, 3, 4, 5, 9, 1, 2, 3, 4, 5, 6, 7, 8};
 
 const uint32_t BOARD_SIZE = 9;
 const uint32_t BOARD_SIZE_SQRT = 3;
@@ -22,14 +17,14 @@ using Cell_t = Cell<BOARD_SIZE>;
 using Cage_t = LogicalCage<BOARD_SIZE>;
 using Group_t = std::set<Cage_t *>;
 
-Group_t generateGenericCages(Cell_t *cells) {
+Group_t generateGenericCages(std::vector<Cell_t *> &cells) {
   Group_t genericCages;
   for (int row = 0; row < BOARD_SIZE; ++row) {
     std::set<Cell<BOARD_SIZE> *> rowSet;
     std::set<Cell<BOARD_SIZE> *> colSet;
     for (int col = 0; col < BOARD_SIZE; ++col) {
-      rowSet.insert(&cells[row * BOARD_SIZE + col]);
-      colSet.insert(&cells[col * BOARD_SIZE + row]);
+      rowSet.insert(cells[row * BOARD_SIZE + col]);
+      colSet.insert(cells[col * BOARD_SIZE + row]);
     }
     genericCages.insert(new Cage_t(rowSet, DEFAULT_SUM));
     genericCages.insert(new Cage_t(colSet, DEFAULT_SUM));
@@ -39,8 +34,8 @@ Group_t generateGenericCages(Cell_t *cells) {
       std::set<Cell<BOARD_SIZE> *> squareSet;
       for (int row2 = 0; row2 < BOARD_SIZE_SQRT; ++row2) {
         for (int col2 = 0; col2 < BOARD_SIZE_SQRT; ++col2) {
-          squareSet.insert(&cells[(row1 * BOARD_SIZE_SQRT + row2) * BOARD_SIZE +
-                                  col1 * BOARD_SIZE_SQRT + col2]);
+          squareSet.insert(cells[(row1 * BOARD_SIZE_SQRT + row2) * BOARD_SIZE +
+                                 col1 * BOARD_SIZE_SQRT + col2]);
         }
       }
       genericCages.insert(new Cage_t(squareSet, DEFAULT_SUM));
@@ -82,6 +77,12 @@ Group_t linkCages(Group_t &genericCages, Group_t &definedCages) {
   return allCages;
 }
 
+void unlinkCages(Group_t &allCages) {
+  for (Cage_t *cage : allCages) {
+    cage->uninit();
+  }
+}
+
 std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>>
 generateDifferentByOne(Group_t &allCages) {
   std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>> differentByOne;
@@ -116,7 +117,7 @@ generateDifferentByOne(Group_t &allCages) {
 }
 
 SolverStatus
-narrow(Cell_t *cells,
+narrow(std::vector<Cell_t *> &cells, Group_t cages,
        std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>> &differentByOne) {
   bool progress = true;
   while (progress) {
@@ -132,8 +133,8 @@ narrow(Cell_t *cells,
       }
     }
     for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; ++i) {
-      if (cells[i].narrowPossibleValues()) {
-        if (cells[i].isConflict()) {
+      if (cells[i]->narrowPossibleValues()) {
+        if (cells[i]->isConflict()) {
           return SolverStatus::CONFLICT;
         }
         progress = true;
@@ -142,37 +143,37 @@ narrow(Cell_t *cells,
   }
   bool allSolved = true;
   for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; ++i) {
-    if (!cells[i].isSolved()) {
+    if (!cells[i]->isSolved()) {
       return SolverStatus::UNSOLVED;
     }
   }
   return SolverStatus::SOLVED;
 }
 
-Cell_t *chooseGuessCell(Cell_t *cells) {
+Cell_t *chooseGuessCell(std::vector<Cell_t *> &cells) {
   uint32_t numPossible = BOARD_SIZE + 1;
   uint32_t numCages = 0;
   Cell_t *bestCell = nullptr;
   for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; ++i) {
-    if (cells[i].isSolved()) {
+    if (cells[i]->isSolved()) {
       continue;
     }
-    uint32_t cellNumPossible = cells[i].getPossibleValues().count();
-    if (cellNumPossible < numPossible ||
-        (cellNumPossible == numPossible && cells[i].getNumCages() > numCages)) {
+    uint32_t cellNumPossible = cells[i]->getPossibleValues().count();
+    if (cellNumPossible < numPossible || (cellNumPossible == numPossible &&
+                                          cells[i]->getNumCages() > numCages)) {
       numPossible = cellNumPossible;
-      numCages = cells[i].getNumCages();
-      bestCell = &cells[i];
+      numCages = cells[i]->getNumCages();
+      bestCell = cells[i];
     }
   }
   return bestCell;
 }
 
 uint32_t solveRecurse(
-    Cell_t *cells,
+    std::vector<Cell_t *> &cells, Group_t cages,
     std::vector<std::tuple<Cell_t *, Cell_t *, uint32_t>> &differentByOne,
-    uint32_t depth) {
-  SolverStatus status = narrow(cells, differentByOne);
+    const uint32_t depth, const SolverMode mode) {
+  SolverStatus status = narrow(cells, cages, differentByOne);
   if (status == SolverStatus::UNSOLVED) {
     // Make a guess
     uint32_t numSolutions = 0;
@@ -182,12 +183,17 @@ uint32_t solveRecurse(
       std::cout << "Guessing cell " << *guessCell << " is " << i + 1
                 << std::endl;
       for (int j = 0; j < BOARD_SIZE * BOARD_SIZE; ++j) {
-        cells[j].saveState();
+        cells[j]->saveState();
       }
       guessCell->manuallySetValue(i);
-      numSolutions += solveRecurse(cells, differentByOne, depth + 1);
+      numSolutions +=
+          solveRecurse(cells, cages, differentByOne, depth + 1, mode);
       for (int j = 0; j < BOARD_SIZE * BOARD_SIZE; ++j) {
-        cells[j].restoreState();
+        cells[j]->restoreState();
+      }
+      if ((numSolutions > 1 && mode == SolverMode::DUPLICATE_SOLUTIONS) ||
+          (numSolutions >= 1 && mode == SolverMode::ANY_SOLUTIONS)) {
+        return numSolutions;
       }
     }
     return numSolutions;
@@ -209,12 +215,17 @@ uint32_t solveRecurse(
   return 0;
 }
 
-uint32_t solve(Cell_t *cells, Group_t &definedCages) {
+uint32_t solve(std::vector<Cell_t *> &cells, Group_t &definedCages,
+               const SolverMode mode) {
+  for (Cell_t *cell : cells) {
+    cell->reset();
+  }
   auto start = std::chrono::high_resolution_clock::now();
   Group_t genericCages = generateGenericCages(cells);
   Group_t allCages = linkCages(genericCages, definedCages);
   auto differentByOne = generateDifferentByOne(allCages);
-  uint32_t result = solveRecurse(cells, differentByOne, 0);
+  uint32_t result = solveRecurse(cells, allCages, differentByOne, 0, mode);
+  unlinkCages(allCages);
   auto end = std::chrono::high_resolution_clock::now();
   std::cout << "Running time: "
             << std::chrono::duration_cast<std::chrono::microseconds>(end -
