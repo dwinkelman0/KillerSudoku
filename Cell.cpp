@@ -59,6 +59,11 @@ bool Cell<N>::orderByCompleteness(const Cell<N> *left, const Cell<N> *right) {
 }
 
 template <uint32_t N>
+bool Cell<N>::reverseOrderByCompleteness(const Cell<N> *left, const Cell<N> *right) {
+  return !orderByCompleteness(left, right);
+}
+
+template <uint32_t N>
 bool Cell<N>::setPossibleValues(const PossibleValues<N> &values) {
   if (values != possibleValues_) {
     // std::cout << *this << ": ";

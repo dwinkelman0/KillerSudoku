@@ -161,7 +161,7 @@ bool LogicalCage<N>::testCellValues(const Cell<N> *cell, const uint32_t value) {
     }
   }
   std::sort(sortedCells_.begin(), sortedCells_.end(),
-            Cell<N>::orderByCompleteness);
+            Cell<N>::reverseOrderByCompleteness);
   return testCellValues({{cell, value + 1}}, sortedCells_);
 }
 
@@ -213,11 +213,11 @@ bool LogicalCage<N>::testCellValues(
       // Recursively solve
       uint32_t minPossibilities = N + 1;
       bool anyWorks = false;
-      if (remaining.size() > 0 && pairs.find(*remaining.begin()) != pairs.end()) {
-        remaining.erase(remaining.begin());
+      if (pairs.find(remaining.back()) != pairs.end()) {
+        remaining.pop_back();
       }
-      const Cell<N> *bestCell = *remaining.begin();
-      remaining.erase(remaining.begin());
+      const Cell<N> *bestCell = remaining.back();
+      remaining.pop_back();
       std::map<const Cell<N> *, uint32_t> newPairs(pairs.begin(),
                                                     pairs.end());
       for (uint32_t i : bestCell->getPossibleValues()) {
@@ -230,7 +230,7 @@ bool LogicalCage<N>::testCellValues(
           newPairs.erase(bestCell);
         }
       }
-      remaining.insert(remaining.begin(), bestCell);
+      remaining.push_back(bestCell);
       return anyWorks;
     }
   } else {
