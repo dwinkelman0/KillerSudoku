@@ -67,7 +67,8 @@ public:
   friend std::ostream &operator<<(std::ostream &os, const Cell<N_> &cell);
 
   static bool orderByCompleteness(const Cell<N> *left, const Cell<N> *right);
-  static bool reverseOrderByCompleteness(const Cell<N> *left, const Cell<N> *right);
+  static bool reverseOrderByCompleteness(const Cell<N> *left,
+                                         const Cell<N> *right);
 
   /**
    * Returns true if there was an update to possible values.

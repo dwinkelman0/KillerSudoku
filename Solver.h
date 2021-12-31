@@ -11,7 +11,8 @@ enum class SolverMode { ALL_SOLUTIONS, ANY_SOLUTIONS, DUPLICATE_SOLUTIONS };
 enum class SolverStatus { SOLVED, UNSOLVED, CONFLICT };
 
 const uint32_t BOARD_SIZE = 9;
-const uint32_t BOARD_SIZE_SQRT = 3;
+const uint32_t R = 3;
+const uint32_t C = 3;
 const uint32_t DEFAULT_SUM = BOARD_SIZE * (BOARD_SIZE + 1) / 2;
 using Cell_t = Cell<BOARD_SIZE>;
 using Cage_t = LogicalCage<BOARD_SIZE>;
@@ -29,13 +30,13 @@ Group_t generateGenericCages(std::vector<Cell_t *> &cells) {
     genericCages.insert(new Cage_t(rowSet, DEFAULT_SUM));
     genericCages.insert(new Cage_t(colSet, DEFAULT_SUM));
   }
-  for (int row1 = 0; row1 < BOARD_SIZE_SQRT; ++row1) {
-    for (int col1 = 0; col1 < BOARD_SIZE_SQRT; ++col1) {
+  for (int row1 = 0; row1 < R; ++row1) {
+    for (int col1 = 0; col1 < C; ++col1) {
       std::set<Cell<BOARD_SIZE> *> squareSet;
-      for (int row2 = 0; row2 < BOARD_SIZE_SQRT; ++row2) {
-        for (int col2 = 0; col2 < BOARD_SIZE_SQRT; ++col2) {
-          squareSet.insert(cells[(row1 * BOARD_SIZE_SQRT + row2) * BOARD_SIZE +
-                                 col1 * BOARD_SIZE_SQRT + col2]);
+      for (int row2 = 0; row2 < R; ++row2) {
+        for (int col2 = 0; col2 < C; ++col2) {
+          squareSet.insert(
+              cells[(row1 * R + row2) * BOARD_SIZE + col1 * C + col2]);
         }
       }
       genericCages.insert(new Cage_t(squareSet, DEFAULT_SUM));
@@ -178,10 +179,11 @@ uint32_t solveRecurse(
     // Make a guess
     uint32_t numSolutions = 0;
     Cell_t *guessCell = chooseGuessCell(cells);
-    std::cout << "UNSOLVED: about to make a guess" << std::endl;
+    std::cout << "[" << depth << "] UNSOLVED: about to make a guess"
+              << std::endl;
     for (uint32_t i : guessCell->getPossibleValues()) {
-      std::cout << "Guessing cell " << *guessCell << " is " << i + 1
-                << std::endl;
+      std::cout << "[" << depth << "] Guessing cell " << *guessCell << " is "
+                << i + 1 << std::endl;
       for (int j = 0; j < BOARD_SIZE * BOARD_SIZE; ++j) {
         cells[j]->saveState();
       }
@@ -205,7 +207,8 @@ uint32_t solveRecurse(
                 << std::endl;
       return 0;
     }
-    std::cout << "CONFLICT: about to undo a guess" << std::endl;
+    std::cout << "[" << depth << "] CONFLICT: about to undo a guess"
+              << std::endl;
     return 0;
   } else {
     // Everything is solved

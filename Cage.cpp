@@ -171,7 +171,8 @@ bool LogicalCage<N>::testCellValues(const Cell<N> *cell, const uint32_t value) {
 
 template <uint32_t N>
 bool LogicalCage<N>::testCellValues(
-    const uint32_t sumUsedValues, PossibleValues<N> &usedValues, const uint32_t numberUsedCells, std::bitset<N * N> &usedCells,
+    const uint32_t sumUsedValues, PossibleValues<N> &usedValues,
+    const uint32_t numberUsedCells, std::bitset<N * N> &usedCells,
     std::vector<const Cell<N> *> &remaining) const {
   const uint32_t bitsetSize = N * N + 1;
   using SumBitset_t = std::bitset<bitsetSize>;
@@ -219,7 +220,8 @@ bool LogicalCage<N>::testCellValues(
       for (uint32_t i : bestCell->getPossibleValues()) {
         if (!usedValues.test(i)) {
           usedValues.set(i);
-          anyWorks = testCellValues(sumUsedValues + i + 1, usedValues, numberUsedCells + 1, usedCells, remaining);
+          anyWorks = testCellValues(sumUsedValues + i + 1, usedValues,
+                                    numberUsedCells + 1, usedCells, remaining);
           if (anyWorks) {
             break;
           }
@@ -267,6 +269,8 @@ bool LogicalCage<N>::orderByComplexity(const LogicalCage<N> *left,
 }
 
 template class Cage<9>;
+template class Cage<12>;
 template class Cage<16>;
 template class LogicalCage<9>;
+template class LogicalCage<12>;
 template class LogicalCage<16>;

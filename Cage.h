@@ -71,7 +71,10 @@ public:
    * 3 or fewer cells.
    */
   bool testCellValues(const Cell<N> *cell, const uint32_t value);
-  bool testCellValues(const uint32_t sumUsedValues, PossibleValues<N> &usedValues, const uint32_t numberUsedCells, std::bitset<N * N> &usedCells,
+  bool testCellValues(const uint32_t sumUsedValues,
+                      PossibleValues<N> &usedValues,
+                      const uint32_t numberUsedCells,
+                      std::bitset<N * N> &usedCells,
                       std::vector<const Cell<N> *> &remaining) const;
 
   template <uint32_t N_>
