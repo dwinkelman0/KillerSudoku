@@ -162,12 +162,16 @@ bool LogicalCage<N>::testCellValues(const Cell<N> *cell, const uint32_t value) {
   }
   std::sort(sortedCells_.begin(), sortedCells_.end(),
             Cell<N>::reverseOrderByCompleteness);
-  return testCellValues({{cell, value + 1}}, sortedCells_);
+  PossibleValues<N> usedValues;
+  usedValues.set(value);
+  std::bitset<N * N> usedCells;
+  usedCells.set(cell->getId());
+  return testCellValues(value + 1, usedValues, 1, usedCells, sortedCells_);
 }
 
 template <uint32_t N>
 bool LogicalCage<N>::testCellValues(
-    const std::map<const Cell<N> *, uint32_t> &pairs,
+    const uint32_t sumUsedValues, PossibleValues<N> &usedValues, const uint32_t numberUsedCells, std::bitset<N * N> &usedCells,
     std::vector<const Cell<N> *> &remaining) const {
   const uint32_t bitsetSize = N * N + 1;
   using SumBitset_t = std::bitset<bitsetSize>;
@@ -175,24 +179,18 @@ bool LogicalCage<N>::testCellValues(
     // Too large to evaluate, so err on side of caution for now
     return true;
   }
-  uint32_t initialValue = 0;
   SumBitset_t possibleSums(0);
-  std::bitset<N> valueBitset(0);
-  for (const auto &pair : pairs) {
-    initialValue += pair.second;
-    valueBitset.set(pair.second - 1);
-  }
-  possibleSums.set(initialValue, true);
+  possibleSums.set(sumUsedValues, true);
   if (getUniqueness()) {
-    if (this->getNumCells() - pairs.size() <= 2) {
+    if (this->getNumCells() - numberUsedCells <= 2) {
       // Can use a bit-twiddling trick to efficiently compute this
       SumBitset_t uniquenessBitsets[N];
-      for (const auto &pair : pairs) {
-        uniquenessBitsets[pair.second - 1].set(initialValue);
+      for (const uint32_t i : usedValues) {
+        uniquenessBitsets[i].set(sumUsedValues);
       }
       for (const Cell<N> *other : remaining) {
         SumBitset_t stageSums(0);
-        if (pairs.find(other) != pairs.end()) {
+        if (usedCells.test(other->getId())) {
           continue;
         }
         bool progress = false;
@@ -211,25 +209,24 @@ bool LogicalCage<N>::testCellValues(
       }
     } else {
       // Recursively solve
-      uint32_t minPossibilities = N + 1;
       bool anyWorks = false;
-      if (pairs.find(remaining.back()) != pairs.end()) {
+      if (usedCells.test(remaining.back()->getId())) {
         remaining.pop_back();
       }
       const Cell<N> *bestCell = remaining.back();
       remaining.pop_back();
-      std::map<const Cell<N> *, uint32_t> newPairs(pairs.begin(),
-                                                    pairs.end());
+      usedCells.set(bestCell->getId());
       for (uint32_t i : bestCell->getPossibleValues()) {
-        if (!valueBitset.test(i)) {
-          newPairs.emplace(bestCell, i + 1);
-          anyWorks = testCellValues(newPairs, remaining);
+        if (!usedValues.test(i)) {
+          usedValues.set(i);
+          anyWorks = testCellValues(sumUsedValues + i + 1, usedValues, numberUsedCells + 1, usedCells, remaining);
           if (anyWorks) {
             break;
           }
-          newPairs.erase(bestCell);
+          usedValues.reset(i);
         }
       }
+      usedCells.reset(bestCell->getId());
       remaining.push_back(bestCell);
       return anyWorks;
     }
@@ -237,11 +234,11 @@ bool LogicalCage<N>::testCellValues(
     // Cage does not have uniqueness
     for (Cell<N> *other : this->getCells()) {
       SumBitset_t stageSums(0);
-      if (pairs.find(other) != pairs.end()) {
+      if (usedCells.test(other->getId())) {
         continue;
       }
       for (int i = 0; i < N; ++i) {
-        if (getUniqueness() && valueBitset.test(i)) {
+        if (getUniqueness() && usedValues.test(i)) {
           continue;
         }
         if (other->getPossibleValues().test(i)) {

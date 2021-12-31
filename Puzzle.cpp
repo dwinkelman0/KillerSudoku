@@ -98,7 +98,7 @@ template <uint32_t R, uint32_t C> Puzzle<R, C>::Puzzle() {
     }
   }
   CellMap cellMap(initialCages);
-  for (uint32_t cageSize = 2; cageSize < 7 && cellMap.getNumCages() > N * N / 3; ++cageSize) {
+  for (uint32_t cageSize = 2; cageSize < 7 && cellMap.getNumCages() > N * N / 4; ++cageSize) {
     uint32_t numCages = N * N * 2 / (cageSize + 1);
     while (cellMap.getNumCages() > numCages) {
       bool orientation = orientationSelector(generator);
