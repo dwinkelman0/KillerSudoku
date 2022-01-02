@@ -190,11 +190,13 @@ uint32_t solveRecurse(
       guessCell->manuallySetValue(i);
       numSolutions +=
           solveRecurse(cells, cages, differentByOne, depth + 1, mode);
+      if (numSolutions >= 1 && mode == SolverMode::ANY_SOLUTIONS) {
+        return numSolutions;
+      }
       for (int j = 0; j < BOARD_SIZE * BOARD_SIZE; ++j) {
         cells[j]->restoreState();
       }
-      if ((numSolutions > 1 && mode == SolverMode::DUPLICATE_SOLUTIONS) ||
-          (numSolutions >= 1 && mode == SolverMode::ANY_SOLUTIONS)) {
+      if (numSolutions > 1 && mode == SolverMode::DUPLICATE_SOLUTIONS) {
         return numSolutions;
       }
     }

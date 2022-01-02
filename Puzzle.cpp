@@ -88,13 +88,26 @@ template <uint32_t R, uint32_t C> Puzzle<R, C>::Puzzle() {
   std::uniform_int_distribution<uint32_t> rowSelector(0, N - 1);
   std::uniform_int_distribution<uint32_t> colSelector(0, N - 2);
 
-  Solution solution;
+  Solution solution = Solution()
+                          .swapOrder()
+                          .swapValues(true)
+                          .swapOrder()
+                          .swapValues(false)
+                          .swapOrder();
+  std::cout << "Solution:" << std::endl;
+  for (uint32_t row = 0; row < N; ++row) {
+    for (uint32_t col = 0; col < N; ++col) {
+      std::cout << solution.get(row, col) << ", ";
+    }
+    std::cout << std::endl;
+  }
   std::vector<Cage<N> *> initialCages;
   for (uint32_t row = 0; row < N; ++row) {
     for (uint32_t col = 0; col < N; ++col) {
       Cell<N> *newCell = new Cell<N>(row * N + col);
       cells_.push_back(newCell);
-      initialCages.push_back(new Cage<N>({newCell}, solution.get(row, col)));
+      initialCages.push_back(
+          new Cage<N>({newCell}, solution.get(row, col) + 1));
     }
   }
   CellMap cellMap(initialCages);
@@ -120,9 +133,16 @@ template <uint32_t R, uint32_t C> Puzzle<R, C>::Puzzle() {
       }
     }
   }
-  for (Cell<N> *cell : cells_) {
-    std::cout << *cell << ": " << *cellMap.getCage(cell) << std::endl;
+  auto definedCages = cellMap.generateLogicalCages();
+  std::cout << "const cages = [" << std::endl;
+  for (Cage<N> *cage : definedCages) {
+    std::cout << "\t{cells: [";
+    for (Cell<N> *cell : cage->getCells()) {
+      std::cout << *cell << ", ";
+    }
+    std::cout << "], sum: " << cage->getSum() << "}," << std::endl;
   }
+  std::cout << "];" << std::endl;
 }
 
 static std::vector<uint32_t> randomRange(const uint32_t n) {
@@ -145,52 +165,36 @@ template <uint32_t R, uint32_t C> Puzzle<R, C>::Solution::Solution() {
       data_[row * N + col] = (startingValue + col) % N;
     }
   }
+}
 
-  // // Choose numbers to rotate-swap
-  // std::set<uint32_t> rowSwapSet;
-  // for (uint32_t i = 0; i < R; ++i) {
-  //   rowSwapSet.insert(*randomRange(C).begin() + i * C);
-  // }
-  // for (uint32_t row = 0; row < N; ++row) {
-  //   std::set<uint32_t> rowSwapSetCopy(rowSwapSet);
-  //   for (uint32_t col = 0; col < C; ++col) {
-  //     rowSwapSetCopy.erase(data_[row * N + col]);
-  //   }
-  //   std::vector<uint32_t> swapVector(rowSwapSetCopy.begin(),
-  //   rowSwapSetCopy.end()); std::map<uint32_t, uint32_t> swapMapping; for
-  //   (uint32_t i = 0; i < swapVector.size(); ++i) {
-  //     swapMapping.emplace(swapVector[i], swapVector[(i + 1) %
-  //     swapVector.size()]);
-  //   }
-  //   for (uint32_t col = C; col < N; ++col) {
-  //     auto it = swapMapping.find(data_[row * N + col]);
-  //     if (it != swapMapping.end()) {
-  //       data_[row * N + col] = it->second;
-  //     }
-  //   }
-  // }
-  // std::set<uint32_t> colSwapSet;
-  // for (uint32_t i = 0; i < C; ++i) {
-  //   colSwapSet.insert(*randomRange(R).begin() + i * R);
-  // }
-  // for (uint32_t col = 0; col < N; ++col) {
-  //   std::set<uint32_t> colSwapSetCopy(colSwapSet);
-  //   for (uint32_t row = 0; row < R; ++row) {
-  //     colSwapSetCopy.erase(data_[row * N + col]);
-  //   }
-  //   std::vector<uint32_t> swapVector(colSwapSetCopy.begin(),
-  //   colSwapSetCopy.end()); std::map<uint32_t, uint32_t> swapMapping; for
-  //   (uint32_t i = 0; i < swapVector.size(); ++i) {
-  //     swapMapping.emplace(swapVector[i], swapVector[(i + 1) %
-  //     swapVector.size()]);
-  //   }
-  //   for (uint32_t row = R; row < N; ++row) {
-  //     auto it = swapMapping.find(data_[row * N + col]);
-  //     if (it != swapMapping.end()) {
-  //       data_[row * N + col] = it->second;
-  //     }
-  //   }
-  // }
+template <uint32_t R, uint32_t C>
+typename Puzzle<R, C>::Solution
+Puzzle<R, C>::Solution::swapValues(const bool axis) const {
+  Solution output = *this;
+  std::vector<uint32_t> swapOrder = randomRange(N);
+  std::set<uint32_t> swapSet(swapOrder.begin(), swapOrder.begin() + N / 2);
+  std::vector<Cell<N> *> cells;
+  std::set<LogicalCage<N> *> definedCages;
+  for (uint32_t row = 0; row < N; ++row) {
+    for (uint32_t col = 0; col < N; ++col) {
+      Cell<N> *newCell = new Cell<N>(row * N + col);
+      cells.push_back(newCell);
+      if (swapSet.find(get(row, col)) == swapSet.end() || (col < C && axis) ||
+          (row < R && !axis)) {
+        definedCages.insert(new LogicalCage<N>({newCell}, get(row, col) + 1));
+      }
+    }
+  }
+  solve(cells, definedCages, SolverMode::ANY_SOLUTIONS);
+  for (Cell<N> *cell : cells) {
+    output.data_[cell->getId()] = *cell->getPossibleValues().begin();
+  }
+  return output;
+}
+
+template <uint32_t R, uint32_t C>
+typename Puzzle<R, C>::Solution Puzzle<R, C>::Solution::swapOrder() const {
+  Solution output;
 
   // Randomly mix bands, stacks, rows, and columns
   uint32_t newData[N * N];
@@ -218,8 +222,9 @@ template <uint32_t R, uint32_t C> Puzzle<R, C>::Solution::Solution() {
   // Relabel numbers
   std::vector<uint32_t> relabelMap = randomRange(N);
   for (uint32_t i = 0; i < N * N; ++i) {
-    data_[i] = relabelMap[newData[i]] + 1;
+    output.data_[i] = relabelMap[newData[i]];
   }
+  return output;
 }
 
 template class Puzzle<3, 3>;

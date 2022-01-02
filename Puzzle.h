@@ -20,6 +20,8 @@ public:
     inline uint32_t get(const uint32_t row, const uint32_t col) const {
       return data_[row * N + col];
     }
+    Solution swapValues(const bool axis) const;
+    Solution swapOrder() const;
 
   protected:
     uint32_t data_[N * N];
