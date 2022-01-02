@@ -170,7 +170,7 @@ int main() {
   //   std::cout << std::endl;
   // }
 
-  Puzzle<3, 3> puzzle;
+  Puzzle<3, 3> puzzle(22);
 
   return 0;
 }

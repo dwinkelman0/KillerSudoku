@@ -81,7 +81,7 @@ void Puzzle<R, C>::CellMap::restoreCage(Cage<N> *cage) {
   }
 }
 
-template <uint32_t R, uint32_t C> Puzzle<R, C>::Puzzle() {
+template <uint32_t R, uint32_t C> Puzzle<R, C>::Puzzle(const uint32_t numCages) {
   std::random_device randomDevice;
   std::mt19937 generator(randomDevice());
   std::uniform_int_distribution<uint32_t> orientationSelector(0, 1);
@@ -111,10 +111,11 @@ template <uint32_t R, uint32_t C> Puzzle<R, C>::Puzzle() {
     }
   }
   CellMap cellMap(initialCages);
-  for (uint32_t cageSize = 2; cageSize < 8 && cellMap.getNumCages() > N * N / 3;
+  for (uint32_t cageSize = 2; cageSize < 8 && cellMap.getNumCages() > numCages;
        ++cageSize) {
-    uint32_t numCages = N * N * 2 / (cageSize + 1);
-    while (cellMap.getNumCages() > numCages) {
+    uint32_t numStageCages = N * N * 2 / (cageSize + 1);
+    uint32_t attempts = 0;
+    while (cellMap.getNumCages() > numStageCages && attempts < 10) {
       bool orientation = orientationSelector(generator);
       uint32_t row = rowSelector(generator);
       uint32_t col = colSelector(generator);
@@ -123,14 +124,30 @@ template <uint32_t R, uint32_t C> Puzzle<R, C>::Puzzle() {
       if (cellMap.merge(cells_[i1], cells_[i2], cageSize)) {
         std::cout << "Merge " << *cells_[i1] << " and " << *cells_[i2] << " ("
                   << cellMap.getNumCages() << " cages)" << std::endl;
+        std::set<uint32_t> cageValues;
+        for (Cell<N> *cell : cellMap.getCage(cells_[i1])->getCells()) {
+          cageValues.insert(solution.get(cell->getId()));
+        }
+        if (cageValues.size() != cellMap.getCage(cells_[i1])->getNumCells()) {
+          // Cage uniqueness constraint violated
+          std::cout << "Cage does not have unique values, unmerge" << std::endl;
+          cellMap.unmerge();
+          continue;
+        }
         auto definedCages = cellMap.generateLogicalCages();
         uint32_t numSolutions =
             solve(cells_, definedCages, SolverMode::DUPLICATE_SOLUTIONS);
         if (numSolutions > 1) {
           std::cout << "No unique solution, unmerge" << std::endl;
           cellMap.unmerge();
+          ++attempts;
+        } else {
+          attempts = 0;
         }
       }
+    }
+    if (attempts == 10) {
+      std::cout << numCages << " cages was too damn hard, this puzzle has " << cellMap.getNumCages() << " cages instead" << std::endl;
     }
   }
   auto definedCages = cellMap.generateLogicalCages();

@@ -11,7 +11,7 @@ template <uint32_t R, uint32_t C> class Puzzle {
 public:
   static const uint32_t N = R * C;
 
-  Puzzle();
+  Puzzle(const uint32_t numCages);
 
   class Solution {
   public:
@@ -19,6 +19,9 @@ public:
 
     inline uint32_t get(const uint32_t row, const uint32_t col) const {
       return data_[row * N + col];
+    }
+    inline uint32_t get(const uint32_t index) const {
+      return data_[index];
     }
     Solution swapValues(const bool axis) const;
     Solution swapOrder() const;
